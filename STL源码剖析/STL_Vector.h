@@ -4,8 +4,9 @@ template <class T>
 class Vector
 {
 public:
-	typedef T value_type;
-	typedef value_type* Iterator;
+	typedef T Value_Type;
+	typedef Value_Type* Iterator;
+	typedef const Value_Type* ConstIterator;
 
 public:
 	Vector()
@@ -50,7 +51,7 @@ public:
 		return *End_Of_Storage;
 	}
 
-	Vector<T>& operator = (Vector<T>& V)
+	Vector<T>& operator = (const Vector<T>& V)          //const vector对应的Size也要为const
 	{
 		if (&V != this)
 		{
@@ -98,6 +99,16 @@ public:
 		return End_Of_Storage - Start;
 	}
 
+	size_t Size()const
+	{
+		return Finish - Start;
+	}
+
+	size_t Capacity()const
+	{
+		return End_Of_Storage - Start;
+	}
+
 	Iterator Begin()
 	{
 		return Start;
@@ -118,6 +129,26 @@ public:
 		return Start;
 	}
 
+	Iterator Begin()const
+	{
+		return Start;
+	}
+
+	Iterator End()const
+	{
+		return Finish;
+	}
+
+	Iterator RBegin()const
+	{
+		return Finish;
+	}
+
+	Iterator REnd()const
+	{
+		return Start;
+	}
+
 	void Display()
 	{
 		Iterator tmp;
@@ -130,7 +161,7 @@ public:
 
 	~Vector()
 	{
-		if (Start);
+		if (Start)
 		    Destory(Start, End_Of_Storage, Finish);
 
 		delete Start;
@@ -176,7 +207,7 @@ void TestVector()
 	Vector<int> V(3, 4);
 	V.Display();
 
-	Vector<int>::Iterator it;
+	Vector<int>::ConstIterator it;
 	for (it = V.Begin(); it != V.End(); ++it)
 	{
 		cout << *it << " ";
@@ -188,6 +219,8 @@ void TestVector()
 	V1.Display();
 
 	it = V1.Begin();
-	V1.Insert(it,3);
+	//V1.Insert(it,3);
 	V1.Display();
+
+	Distance(V1.Begin(), V1.End());
 }
