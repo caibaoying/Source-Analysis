@@ -1,61 +1,58 @@
 #pragma once
 
-typedef ptrdiff_t Difference_Type;
-
-
 struct Input_Iterator_Tag {};
 struct Output_Iterator_Tag {};
 struct Forward_Iterator_Tag : public Input_Iterator_Tag {};
 struct Bidirectional_Iterator_Tag : public Forward_Iterator_Tag {};
 struct Random_Access_Iterator_Tag : public Bidirectional_Iterator_Tag {};
 
-template <class T, class Distance> 
+template <class T> 
 struct Input_Iterator 
 {
-	typedef Input_Iterator_Tag Iterator_Category;
-	typedef T                  Value_Type;
-	typedef Distance           Difference_Type;
+	typedef Input_Iterator_Tag IteratorCategory;
+	typedef T                  ValueType;
+	typedef ptrdiff_t           DifferenceType;
 	typedef T*                 Pointer;
 	typedef T&                 Reference;
 };
 
-template <class T, class Distance>
+template <class T>
 struct Output_Iterator 
 {
-	typedef Output_Iterator_Tag Iterator_Category;
-	typedef void                Value_Type;
-	typedef void                Difference_Type;
+	typedef Output_Iterator_Tag IteratorCategory;
+	typedef void                ValueType;
+	typedef void                DifferenceType;
 	typedef void                Pointer;
 	typedef void                Reference;
 };
 
-template <class T, class Distance> 
+template <class T> 
 struct Forward_Iterator 
 {
-	typedef Forward_Iterator_Tag Iterator_Category;
-	typedef T                    Value_Type;
-	typedef Distance             Difference_Type;
+	typedef Forward_Iterator_Tag IteratorCategory;
+	typedef T                    ValueType;
+	typedef ptrdiff_t             DifferenceType;
 	typedef T*                   Pointer;
 	typedef T&                   Reference;
 };
 
 
-template <class T, class Distance> 
+template <class T> 
 struct Bidirectional_Iterator 
 {
-	typedef Bidirectional_Iterator_Tag Iterator_Category;
-	typedef T                          Value_Type;
-	typedef Distance                   Difference_Type;
+	typedef Bidirectional_Iterator_Tag IteratorCategory;
+	typedef T                          ValueType;
+	typedef ptrdiff_t                   DifferenceType;
 	typedef T*                         Pointer;
 	typedef T&                         Reference;
 };
 
-template <class T, class Distance> 
+template <class T> 
 struct Random_Access_Iterator 
 {
-	typedef Random_Access_Iterator_Tag Iterator_Category;
-	typedef T                          Value_Type;
-	typedef Distance                   Difference_Type;
+	typedef Random_Access_Iterator_Tag IteratorCategory;
+	typedef T                          ValueType;
+	typedef ptrdiff_t                   DifferenceType;
 	typedef T*                         Pointer;
 	typedef T&                         Reference;
 };
@@ -63,9 +60,9 @@ struct Random_Access_Iterator
 template <class Iterator>
 struct Iterator_Traits 
 {
-	typedef typename Iterator::Iterator_Category Iterator_Category;
-	typedef typename Iterator::Value_Type        Value_Type;
-	typedef typename Iterator::Difference_Type   Difference_Type;
+	typedef typename Iterator::IteratorCategory IteratorCategory;
+	typedef typename Iterator::ValueType         ValueType;
+	typedef typename Iterator::DifferenceType    DifferenceType;
 	typedef typename Iterator::Pointer           Pointer;
 	typedef typename Iterator::Reference         Reference;
 };
@@ -73,9 +70,9 @@ struct Iterator_Traits
 template <class T>
 struct Iterator_Traits<T*> 
 {
-	typedef Random_Access_Iterator_Tag Iterator_Category;
-	typedef T                          Value_Type;
-	typedef ptrdiff_t                  Difference_Type;
+	typedef Random_Access_Iterator_Tag IteratorCategory;
+	typedef T                          ValueType;
+	typedef ptrdiff_t                  DifferenceType;
 	typedef T*                         Pointer;
 	typedef T&                         Reference;
 };
@@ -83,25 +80,26 @@ struct Iterator_Traits<T*>
 template <class T>
 struct Iterator_Traits<const T*> 
 {
-	typedef Random_Access_Iterator_Tag Iterator_Category;
-	typedef T                          Value_Type;
-	typedef ptrdiff_t                  Difference_Type;
+	typedef Random_Access_Iterator_Tag IteratorCategory;
+	typedef T                          ValueType;
+	typedef ptrdiff_t                  DifferenceType;
 	typedef const T*                   Pointer;
 	typedef const T&                   Reference;
 };
 
+//注意这里的typename,DifferenceType还未定义，要想用他，得加关键字typename
 template <class RandomAccessIterator>
-inline Iterator_Traits<RandomAccessIterator>::Difference_Type
+inline typename Iterator_Traits<RandomAccessIterator>::DifferenceType
 _Distance(RandomAccessIterator first, RandomAccessIterator last, Random_Access_Iterator_Tag)
 {
 	return last - first;
 }
 
 template <class ForwardIterator>
-inline Iterator_Traits<ForwardIterator>::Difference_Type
+inline typename Iterator_Traits<ForwardIterator>::DifferenceType
 _Distance(ForwardIterator first, ForwardIterator last, Forward_Iterator_Tag)
 {
-	Iterator_Traits<InputIterator>::Difference_Type n = 0;
+	Iterator_Traits<ForwardIterator>::DifferenceType n = 0;
 	while (first != last)
 	{
 		++first;
@@ -111,10 +109,10 @@ _Distance(ForwardIterator first, ForwardIterator last, Forward_Iterator_Tag)
 }
 
 template <class BidirectionalIterator>
-inline Iterator_Traits<BidirectionalIterator>::Difference_Type
+inline typename Iterator_Traits<BidirectionalIterator>::DifferenceType
 _Distance(BidirectionalIterator first, BidirectionalIterator last, Bidirectional_Iterator_Tag)
 {
-	Iterator_Traits<InputIterator>::Difference_Type n = 0;
+	Iterator_Traits<BidirectionalIterator>::DifferenceType n = 0;
 	while (first != last)
 	{
 		++first;
@@ -123,13 +121,13 @@ _Distance(BidirectionalIterator first, BidirectionalIterator last, Bidirectional
 	return n;
 }
 
-
 template <class InputIterator>
-inline Iterator_Traits<InputIterator>::Difference_Type 
-    Distance2(InputIterator first, InputIterator last) 
+inline typename Iterator_Traits<InputIterator>::DifferenceType
+Distance(InputIterator first, InputIterator last)
 {
-	typedef typename Iterator_Traits<InputIterator>::Iterator_Category category;
+	typedef typename Iterator_Traits<InputIterator>::IteratorCategory category;
 	return _Distance(first, last, category());
 }
+
 
 

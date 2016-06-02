@@ -4,9 +4,9 @@ template <class T>
 class Vector
 {
 public:
-	typedef T Value_Type;
-	typedef Value_Type* Iterator;
-	typedef const Value_Type* ConstIterator;
+	typedef T ValueType;
+	typedef ValueType* Iterator;
+	typedef const ValueType* ConstIterator;
 
 public:
 	Vector()
@@ -222,5 +222,5 @@ void TestVector()
 	//V1.Insert(it,3);
 	V1.Display();
 
-	Distance(V1.Begin(), V1.End());
+	cout<<"DIstance" << Distance(V1.Begin(), V1.End()) << endl;
 }

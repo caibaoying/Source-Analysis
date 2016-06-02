@@ -17,6 +17,8 @@ struct ListNode
 template <class T, class Ref, class Ptr>
 struct ListIterator
 {
+	typedef Bidirectional_Iterator_Tag IteratorCategory;
+
 	typedef ListIterator<T, T&, T*>             Iterator;
 	typedef ListIterator<T, const T&, const T*> const_iterator;
 	typedef ListIterator<T, Ref, Ptr>           Self;
@@ -24,7 +26,7 @@ struct ListIterator
 	typedef T ValueType;
 	typedef Ptr Pointer;
 	typedef Ref Reference;
-	typedef ptrdiff_t difference_type;
+	typedef ptrdiff_t DifferenceType;
 
 
 public:
@@ -293,5 +295,5 @@ void TestListIterator()
 	}
 	cout << endl;
 
-	Distance2(l.Begin(), l.End());
+	cout<<"Diatance" << Distance(l.Begin(), l.End()) << endl;
 }
