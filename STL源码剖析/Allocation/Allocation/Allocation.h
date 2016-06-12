@@ -1,6 +1,99 @@
 #pragma once
 #include <malloc.h>
 
+// SimpleAlloc统一封装的内存分配的接口
+template <class T, class Alloc>
+class SimpleAlloc
+{
+public:
+	static T* Allocate(size_t n)
+	{
+		return n == 0 ? 0 : (T*) Alloc::Allocate(n*sizeof(T));
+	}
+
+	static T* Allocate(void)
+	{
+		return (T*)Alloc::Allocate(sizeof(T));
+	}
+
+	static void Deallocate(T* p, size_t n)
+	{
+		if (n != 0)
+			Alloc::Deallocate(p, sizeof(T) * n);
+	}
+
+	static void Deallocate(T* p)
+	{
+		Alloc::Deallocate(p, sizeof(T));
+	}
+};
+
+
+/************************************************************************
+*                                Trace                                  *
+*************************************************************************/
+#define __DEBUG__
+static string GetFileName(const string& path)
+{
+	char ch = '/';
+#ifdef __Win32__
+
+#endif // __Win32__
+
+	/*********************************************************************
+	Searches the string for the content specified in either str, s or c, 
+	and returns the position of the last occurrence in the string.
+	                          rfind使用简介
+	When pos is specified, the search only includes characters between 
+	the beginning of the string and position pos, ignoring any possible occurrences after pos.
+	**********************************************************************/
+	size_t pos = path.rfind(ch);
+	if (pos == string::npos)
+	{
+		return path;
+	}
+	else
+	{
+		return path.substr(pos + 1);
+	}
+}
+
+//用于调试追溯的trace log
+inline static void __trace_debug(const char* function, const char* filename,
+	                             int line, char* format, ...)
+{
+#ifdef __DEBUG__
+	// 输出调用函数的信息
+	fprintf(stdout, "【%s:%d】 %s", GetFileName(filename).c_str(), line, function);
+	// 输出用户打的trace信息
+	//<Step 1> 在调用参数表之前，定义一个 va_list 类型的变量，(假设va_list 类型变量被定义为ap)；
+	//<Step 2> 然后应该对ap 进行初始化，让它指向可变参数表里面的第一个参数，这是通过 va_start 来
+	//	实现的，第一个参数是 ap 本身，第二个参数是在变参表前面紧挨着的一个变量, 即“...”之前
+	//	的那个参数；
+	//<Step 3> 然后是获取参数，调用va_arg，它的第一个参数是ap，第二个参数是要获取的参数的指定类型，
+	//	然后返回这个指定类型的值，并且把 ap 的位置指向变参表的下一个变量位置；
+	//<Step 4> 获取所有的参数之后，我们有必要将这个 ap 指针关掉，以免发生危险，方法是调用 va_end，
+	//  他是输入的参数 ap 置为 NULL，应该养成获取完参数表之后关闭指针的习惯。说白了，
+	//	就是让我们的程序具有健壮性。通常va_start和va_end是成对出现。
+	va_list args;
+	va_start(args, format);
+	//va_arg
+	vfprintf(stdout, format, args);
+	va_end(args);
+#endif // __DEBGU__
+
+}
+
+#define __TRACE_DEBUG(...) \
+	__trace_debug(__FUNCTION__, __FILE__, __LINE__, __VA_ARGS__);
+
+//__USE_MALLOC__
+#ifdef __USE_MALLOC__
+typedef __MallocAllocTemplate<0> MallocAlloc;
+typedef MallocAlloc Alloc;
+
+#else
+
 
 /************************************************************************
 *                          一级空间配置器                               *
@@ -17,6 +110,7 @@ private:
 public:
 	static void* Allocate(size_t n)
 	{
+		__TRACE_DEBUG("(n:%u)\n", n);
 		void *result = malloc(n);
 		if (0 == result) 
 			result = OomMalloc(n);
@@ -25,6 +119,7 @@ public:
 
 	static void Deallocate(void *p, size_t /* n */)
 	{
+		__TRACE_DEBUG("(p:%p)\n", p);
 		free(p);
 	}
 
@@ -128,7 +223,7 @@ private:
 	}
 
 public:
-	union obj 
+	union obj
 	{
 		union obj* _FreeListLink;
 		char ClientData[1];    /* The client sees this.*/
@@ -153,7 +248,7 @@ public:
 	static void* Reallocate(void *p, size_t old_sz, size_t new_sz);
 };
 
-//初始化静态 
+//初始化静态成员变量
 template <bool threads, int inst>
 typename __DefaultAllocTemplate<threads, inst>::obj* volatile __DefaultAllocTemplate<threads, inst>::
     _FreeList[__DefaultAllocTemplate<threads, inst>::__NFREELISTS];
@@ -170,6 +265,8 @@ size_t __DefaultAllocTemplate<threads, inst>::_HeapSize = 0;
 template <bool threads, int inst>
 void* __DefaultAllocTemplate<threads, inst>::Refill(size_t n)
 {
+	__TRACE_DEBUG("(n:%u)\n", n);
+
 	//分配n bytes 的字节
 	//如果不够能分配多少就分配多少
 	int nobjs = 20;
@@ -201,17 +298,22 @@ void* __DefaultAllocTemplate<threads, inst>::Refill(size_t n)
 template<bool threads, int inst>
 char* __DefaultAllocTemplate<threads, inst>::ChunkAlloc(size_t size, int& nobjs)
 {
+	__TRACE_DEBUG("(size:%u, nobjs:%d)\n", size, nobjs);
+
 	char* result;
 	size_t TotalSize = size*nobjs;
 	size_t LeftSize = _EndFree - _StartFree;
 
 	if (LeftSize >= TotalSize)
 	{
+		__TRACE_DEBUG("内存池中足够分配%d个对象\n", nobjs);
+
 		result = _StartFree;
 		_StartFree += TotalSize;
 	}
 	else if (LeftSize >= size)
 	{
+		__TRACE_DEBUG("内存池中不够分配%d个对象，只能分配%d个对象\n", nobjs, LeftSize/size);
 		nobjs = LeftSize / size;
 		TotalSize = size*nobjs;
 		result = _StartFree;
@@ -228,11 +330,17 @@ char* __DefaultAllocTemplate<threads, inst>::ChunkAlloc(size_t size, int& nobjs)
 			((obj*)_StartFree)->_FreeListLink = _FreeList[index];
 			_FreeList[index] = (obj*)_StartFree;
 			_StartFree = NULL;
+
+			__TRACE_DEBUG("内存池不足以分配1个对象，将剩余的空间分配给_FreeList[%d]", index);
 		}
 
 		_StartFree = (char *)malloc(BytesToGet);
+		__TRACE_DEBUG("内存池空间不够，系统堆分配%u内存", BytesToGet);
+
 		if (_StartFree == NULL)
 		{
+			__TRACE_DEBUG("系统堆分配不出空间，在自由链表中查看");
+
 			for (int i = size; i <= __MAX_BYTES; i += __ALIGN)
 			{
 				size_t index = FreelistIndex(i);
@@ -251,6 +359,7 @@ char* __DefaultAllocTemplate<threads, inst>::ChunkAlloc(size_t size, int& nobjs)
 			}
 
 			//最后一道防线_HeapSize
+			__TRACE_DEBUG("系统堆和自由链表都已无内存， 一级空间配置器做最后一根稻草\n");
 			_StartFree = (char*)__MallocAllocTemplate<0>::Allocate(BytesToGet);
 		}
 
@@ -319,7 +428,10 @@ void* __DefaultAllocTemplate<threads, inst>::Reallocate(void *p, size_t oldsz, s
 	return result;
 }
 
-void Test1()
+typedef __DefaultAllocTemplate<false, 0> Alloc;
+#endif // __USE_MALLOC__
+
+void Test()
 {
 	// 测试调用一级配置器分配内存
 	cout << " 测试调用一级配置器分配内存 " << endl;
@@ -342,3 +454,28 @@ void Test1()
 	}
 }
 
+// 测试内存池的一级、二级配置器功能
+void Test1()
+{
+	// 测试调用一级配置器分配内存
+	cout << "测试调用一级配置器分配内存" << endl;
+	char*p1 = SimpleAlloc<char, Alloc>::Allocate(129);
+	SimpleAlloc<char, Alloc>::Deallocate(p1, 129);
+
+	// 测试调用二级配置器分配内存
+	cout << "测试调用二级配置器分配内存" << endl;
+	char*p2 = SimpleAlloc<char, Alloc>::Allocate(128);
+	char*p3 = SimpleAlloc<char, Alloc>::Allocate(128);
+	char*p4 = SimpleAlloc<char, Alloc>::Allocate(128);
+	char*p5 = SimpleAlloc<char, Alloc>::Allocate(128);
+	SimpleAlloc<char, Alloc>::Deallocate(p2, 128);
+	SimpleAlloc<char, Alloc>::Deallocate(p3, 128);
+	SimpleAlloc<char, Alloc>::Deallocate(p4, 128);
+	SimpleAlloc<char, Alloc>::Deallocate(p5, 128);
+
+	for (int i = 0; i < 21; ++i)
+	{
+		printf("测试第%d次分配\n", i + 1);
+		char*p = SimpleAlloc<char, Alloc>::Allocate(128);
+	}
+}
